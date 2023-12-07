@@ -138,7 +138,7 @@ resource "azurerm_eventhub" "main_eventhub" {
 }
 
 resource "azurerm_stream_analytics_job" "main_steram_analytics_job" {
-  name                                     = "${azurerm_resource_group.main_rg.name}-job"
+  name                                     = "saj-${var.env}-${local.customer_name}"
   resource_group_name                      = azurerm_resource_group.main_rg.name
   location                                 = var.resource_group_location
   compatibility_level                      = "1.2"
@@ -158,7 +158,7 @@ resource "azurerm_storage_data_lake_gen2_filesystem" "main_adls_filesystem" {
 }
 
 resource "azurerm_synapse_workspace" "main_synapse_workspace" {
-  name                                 = "${azurerm_resource_group.main_rg.name}-synapse"
+  name                                 = "synapse-${var.env}-${local.customer_name}"
   resource_group_name                  = azurerm_resource_group.main_rg.name
   location                             = var.resource_group_location
   storage_data_lake_gen2_filesystem_id = azurerm_storage_data_lake_gen2_filesystem.main_adls_filesystem.id
