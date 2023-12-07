@@ -27,6 +27,14 @@ export ARM_CLIENT_ID=your_client_id
 export ARM_CLIENT_SECRET=your_client_secret
 ```
 
+## Register Provider:
+```sh
+az provider register --namespace 'Microsoft.Network'
+az provider register --namespace 'Microsoft.Storage'
+az provider register --namespace 'Microsoft.Synapse'
+az provider register --namespace 'Microsoft.Sql'
+```
+
 ### 사용 방법(VS Code Azure Terraform Extension)
 1. **초기화**
     Terraform을 초기화하여 필요한 provider 플러그인을 설치합니다.

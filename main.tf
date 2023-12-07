@@ -33,13 +33,13 @@ resource "random_string" "random" {
 # 리소스 그룹 생성
 resource "azurerm_resource_group" "main_rg" {
   location = var.resource_group_location
-  name     = "${var.resource_group_prefix}-${local.customer_name}-${random_string.random.result}"
+  name     = "${var.resource_group_prefix}-${var.env}-${local.customer_name}"
   tags = local.common_tags
 }
 
 # Log Analytics 워크스페이스
 resource "azurerm_log_analytics_workspace" "main_alaw" {
-  name                = "${var.resource_group_prefix}-law"
+  name                = "law-${var.env}-${local.customer_name}"
   location            = var.resource_group_location
   resource_group_name = azurerm_resource_group.main_rg.name
   sku                 = "PerGB2018"
@@ -49,7 +49,7 @@ resource "azurerm_log_analytics_workspace" "main_alaw" {
 
 # Vnet 구성
 resource "azurerm_virtual_network" "main_vnet" {
-  name                = "${var.resource_group_prefix}-vnet"
+  name                = "vnet-${var.env}-${local.customer_name}"
   address_space       = ["10.0.0.0/16"]
   location            = var.resource_group_location
   resource_group_name = azurerm_resource_group.main_rg.name
@@ -58,7 +58,7 @@ resource "azurerm_virtual_network" "main_vnet" {
 
 # subnet 구성
 resource "azurerm_subnet" "main_subnet" {
-  name                 = "${var.resource_group_prefix}-subnet"
+  name                 = "subnet-${var.env}-${local.customer_name}"
   resource_group_name  = azurerm_resource_group.main_rg.name
   virtual_network_name = azurerm_virtual_network.main_vnet.name
   address_prefixes     = ["10.0.1.0/24"]
@@ -66,7 +66,7 @@ resource "azurerm_subnet" "main_subnet" {
 
 # nsg 구성
 resource "azurerm_network_security_group" "main_nsg" {
-  name                = "${var.resource_group_prefix}-nsg"
+  name                = "nsg-${var.env}-${local.customer_name}"
   location            = var.resource_group_location
   resource_group_name = azurerm_resource_group.main_rg.name
   tags = local.common_tags
@@ -108,8 +108,8 @@ resource "azurerm_network_security_rule" "http_rule" {
 }
 
 # Storage Account 생성
-resource "azurerm_storage_account" "data_ai_adls" {
-  name                     = "${var.resource_group_prefix}${random_string.random.result}adls"
+resource "azurerm_storage_account" "main_adls" {
+  name                     = "adls${var.env}${local.customer_name}"
   resource_group_name      = azurerm_resource_group.main_rg.name
   location                 = var.resource_group_location
   account_tier             = "Standard"
@@ -120,8 +120,8 @@ resource "azurerm_storage_account" "data_ai_adls" {
 }
 
 # Event Hubs Namespace 생성
-resource "azurerm_eventhub_namespace" "data_ai" {
-  name                = "${var.resource_group_prefix}-${random_string.random.result}-namespace"
+resource "azurerm_eventhub_namespace" "main_eventhub_namespace" {
+  name                = "evhub-${var.env}-${local.customer_name}"
   location            = var.resource_group_location
   resource_group_name = azurerm_resource_group.main_rg.name
   sku                 = "Standard"
@@ -129,15 +129,15 @@ resource "azurerm_eventhub_namespace" "data_ai" {
 }
 
 # Event Hub 생성
-resource "azurerm_eventhub" "data_ai" {
-  name                = "${azurerm_eventhub_namespace.data_ai.name}-eventhub"
-  namespace_name      = azurerm_eventhub_namespace.data_ai.name
+resource "azurerm_eventhub" "main_eventhub" {
+  name                = "${azurerm_eventhub_namespace.main_eventhub_namespace.name}"
+  namespace_name      = azurerm_eventhub_namespace.main_eventhub_namespace.name
   resource_group_name = azurerm_resource_group.main_rg.name
   partition_count     = 2
   message_retention   = 1
 }
 
-resource "azurerm_stream_analytics_job" "data_ai" {
+resource "azurerm_stream_analytics_job" "main_steram_analytics_job" {
   name                                     = "${azurerm_resource_group.main_rg.name}-job"
   resource_group_name                      = azurerm_resource_group.main_rg.name
   location                                 = var.resource_group_location
@@ -154,14 +154,14 @@ resource "azurerm_stream_analytics_job" "data_ai" {
 
 resource "azurerm_storage_data_lake_gen2_filesystem" "main_adls_filesystem" {
   name               = "datalake"
-  storage_account_id = azurerm_storage_account.data_ai_adls.id
+  storage_account_id = azurerm_storage_account.main_adls.id
 }
 
 resource "azurerm_synapse_workspace" "main_synapse_workspace" {
   name                                 = "${azurerm_resource_group.main_rg.name}-synapse"
   resource_group_name                  = azurerm_resource_group.main_rg.name
   location                             = var.resource_group_location
-  storage_data_lake_gen2_filesystem_id = azurerm_storage_data_lake_gen2_filesystem.main_rg.id
+  storage_data_lake_gen2_filesystem_id = azurerm_storage_data_lake_gen2_filesystem.main_adls_filesystem.id
   sql_administrator_login              = "sqladminuser"
   sql_administrator_login_password     = "aprkwhs1234!"
 
