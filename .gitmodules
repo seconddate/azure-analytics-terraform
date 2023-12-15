@@ -1,0 +1,3 @@
+[submodule "azure-analytics-func"]
+	path = azure-analytics-func
+	url = https://github.com/seconddate/azure-analytics-func.git
