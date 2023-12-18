@@ -25,6 +25,14 @@ resource "azurerm_subnet" "hub_subnet" {
   resource_group_name  = azurerm_resource_group.hub_rg.name
   virtual_network_name = azurerm_virtual_network.hub_vnet.name
   address_prefixes     = ["10.1.1.0/24"]
+
+  delegation {
+    name = "appServiceDelegation"
+    service_delegation {
+      name    = "Microsoft.Web/serverFarms"
+      actions = ["Microsoft.Network/virtualNetworks/subnets/action"]
+    }
+  }
 }
 
 resource "azurerm_network_security_group" "hub_nsg" {
@@ -96,8 +104,17 @@ resource "azurerm_linux_function_app" "hub_function_linux" {
     "APPINSIGHTS_INSTRUMENTATIONKEY" = azurerm_application_insights.hub_app_insights.instrumentation_key
     SCM_DO_BUILD_DURING_DEPLOYMENT=true
     ENABLE_ORYX_BUILD=true
-    "EVENT_HUB_CONNECTION" = "@Microsoft.KeyVault(SecretUri=${azurerm_key_vault_secret.eventhub_secret.id})"
+    "WEBSITE_VNET_ROUTE_ALL"            = "1"
+    "WEBSITE_VNET_PREMIUM"              = "1"
+    "WEBSITE_VNET_NAME"                 = azurerm_virtual_network.hub_vnet.name
+    "WEBSITE_VNET_RESOURCE_GROUP"       = azurerm_resource_group.hub_rg.name
   }
+}
+
+# Vnet Integration
+resource "azurerm_app_service_virtual_network_swift_connection" "hub_asp_connection" {
+  app_service_id = azurerm_linux_function_app.hub_function_linux.id
+  subnet_id      = azurerm_subnet.hub_subnet.id
 }
 
 # ------------------------------ Public End
@@ -326,33 +343,3 @@ resource "azurerm_synapse_workspace" "spoke_synapse_workspace" {
   tags = local.common_tags
 }
 # ------------------------------ Private End
-
-# Key Valut 생성
-resource "azurerm_key_vault" "hub_key_vault" {
-  name                        = "kv-${var.env}-${local.customer_name}"
-  location                    = var.resource_group_location
-  resource_group_name         = azurerm_resource_group.hub_rg.name
-  tenant_id                   = var.tenant_id
-  sku_name                    = "standard"
-
-  access_policy {
-    tenant_id = var.tenant_id
-    object_id = var.client_id
-
-    key_permissions = [
-      "get",
-    ]
-
-    secret_permissions = [
-      "get",
-    ]
-  }
-
-  tags = local.common_tags
-}
-
-resource "azurerm_key_vault_secret" "eventhub_secret" {
-  name         = "eventhub-connection-string"
-  value        = data.azurerm_eventhub_namespace_authorization_rule.spoke_eventhub_namespace_auth_rule.primary_connection_string
-  key_vault_id = azurerm_key_vault.hub_key_vault.id
-}
