@@ -104,6 +104,7 @@ resource "azurerm_linux_function_app" "hub_function_linux" {
     "APPINSIGHTS_INSTRUMENTATIONKEY" = azurerm_application_insights.hub_app_insights.instrumentation_key
     SCM_DO_BUILD_DURING_DEPLOYMENT=true
     ENABLE_ORYX_BUILD=true
+    "EVENT_HUB_CONNECTION" = "@Microsoft.KeyVault(SecretUri=${azurerm_key_vault_secret.eventhub_secret.id})"
     "WEBSITE_VNET_ROUTE_ALL"            = "1"
     "WEBSITE_VNET_PREMIUM"              = "1"
     "WEBSITE_VNET_NAME"                 = azurerm_virtual_network.hub_vnet.name
@@ -332,8 +333,8 @@ resource "azurerm_synapse_workspace" "spoke_synapse_workspace" {
 
   aad_admin {
     login     = "AzureAD Admin"
-    object_id = "fee2d061-a98d-4b6f-a08d-a67130755ea8"
-    tenant_id = "97f42f55-f1db-4804-b1eb-08db083efd4f"
+    object_id = var.object_id
+    tenant_id = var.tenant_id
   }
 
   identity {
@@ -343,3 +344,35 @@ resource "azurerm_synapse_workspace" "spoke_synapse_workspace" {
   tags = local.common_tags
 }
 # ------------------------------ Private End
+
+# Key Vault 생성
+resource "azurerm_key_vault" "hub_key_vault" {
+  name                        = "kv-${var.env}-${local.customer_name}"
+  location                    = var.resource_group_location
+  resource_group_name         = azurerm_resource_group.hub_rg.name
+  tenant_id                   = var.tenant_id
+  sku_name                    = "standard"
+
+  access_policy {
+    tenant_id = var.tenant_id
+    object_id = var.object_id
+
+    key_permissions = [
+      "Get",
+    ]
+
+    secret_permissions = [
+      "Get",
+      "Set"
+    ]
+  }
+
+  tags = local.common_tags
+}
+
+# Event Hub 연결 문자열을 Key Vault에 저장
+resource "azurerm_key_vault_secret" "eventhub_secret" {
+  name         = "eventhub-namespace-dns"
+  value        = azurerm_eventhub_namespace.spoke_eventhub_namespace.default_primary_connection_string
+  key_vault_id = azurerm_key_vault.hub_key_vault.id
+}

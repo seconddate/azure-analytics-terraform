@@ -21,10 +21,11 @@
 
 ## Set Service Principal Credentials:
 ```sh
-export ARM_SUBSCRIPTION_ID=your_subscription_id
-export ARM_TENANT_ID=your_tenant_id
-export ARM_CLIENT_ID=your_client_id
-export ARM_CLIENT_SECRET=your_client_secret
+# terraform.tfvars 파일 생성 후 아래 내용 작성
+subscription_id=your_subscription_id
+tenant_id=your_tenant_id
+subscription_id=your_client_id
+client_secret=your_client_secret
 ```
 
 ## Register Provider:
