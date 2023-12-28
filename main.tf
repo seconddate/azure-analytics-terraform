@@ -104,11 +104,16 @@ resource "azurerm_linux_function_app" "hub_function_linux" {
     "APPINSIGHTS_INSTRUMENTATIONKEY" = azurerm_application_insights.hub_app_insights.instrumentation_key
     SCM_DO_BUILD_DURING_DEPLOYMENT=true
     ENABLE_ORYX_BUILD=true
+    EVENTHUB_NAME="evhub-${var.env}-${local.customer_name}"
     "EVENT_HUB_CONNECTION" = "@Microsoft.KeyVault(SecretUri=${azurerm_key_vault_secret.eventhub_secret.id})"
     "WEBSITE_VNET_ROUTE_ALL"            = "1"
     "WEBSITE_VNET_PREMIUM"              = "1"
     "WEBSITE_VNET_NAME"                 = azurerm_virtual_network.hub_vnet.name
     "WEBSITE_VNET_RESOURCE_GROUP"       = azurerm_resource_group.hub_rg.name
+  }
+
+  identity {
+    type = "SystemAssigned"
   }
 }
 
@@ -375,4 +380,15 @@ resource "azurerm_key_vault_secret" "eventhub_secret" {
   name         = "eventhub-namespace-dns"
   value        = azurerm_eventhub_namespace.spoke_eventhub_namespace.default_primary_connection_string
   key_vault_id = azurerm_key_vault.hub_key_vault.id
+}
+
+resource "azurerm_key_vault_access_policy" "key_vault_access_policy" {
+  key_vault_id = azurerm_key_vault.hub_key_vault.id
+
+  tenant_id = var.tenant_id
+  object_id = azurerm_linux_function_app.hub_function_linux.identity[0].principal_id
+
+  secret_permissions = [
+    "Get",
+  ]
 }
