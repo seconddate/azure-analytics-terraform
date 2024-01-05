@@ -4,32 +4,54 @@ variable "client_id" {}
 variable "client_secret" {}
 variable "object_id" {}
 
+variable "public" {
+  type        = string
+  default     = "hub"
+  description = "Public Vnet Group Name"
+}
+
+variable "private" {
+  type        = string
+  default     = "spoke"
+  description = "Private Vnet Group Name"
+}
+
 variable "env" {
   type        = string
   default     = "dev"
   description = "Environment"
 }
 
-locals {
-  public = "hub"
-  private = "spoke"
-  customer_name = "pnpeople"
-  common_tags = {
-    Environment = var.env
-    Owner = "P&PEOPLE"
-    ManagedBy = "Terraform"
-    DeploymentTimestamp = timeadd(timestamp(), "9h")
-  }
+variable "customer_name" {
+  type        = string
+  default     = "ioisoft"
+  description = "Customer Name"
 }
 
-variable "resource_group_location" {
+variable "resource_region" {
   type        = string
   default     = "koreacentral"
-  description = "Location of the resource group."
+  description = "Resource Region"
 }
 
-variable "resource_group_prefix" {
-  description = "Prefix for the resource group name."
+variable "resource_region_aka" {
   type        = string
-  default     = "rg"
+  default     = "kc"
+  description = "Resource Region Abbreviation"
+}
+
+variable "project_name" {
+  description = "Project Name"
+  type        = string
+  default     = "mauritius"
+}
+
+locals {
+  common_tags = {
+    Environment = var.env
+    Owner = var.customer_name
+    Project = var.project_name
+    ManagedBy = "Terraform"
+    DeploymentTimestamp = formatdate("YYYY-MM-DD HH:MM+09:00", timestamp())
+  }
 }
