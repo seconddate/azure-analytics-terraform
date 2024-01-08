@@ -47,11 +47,12 @@ variable "project_name" {
 }
 
 locals {
+  seoul_tz  = timeadd(timestamp(), "9h")
   common_tags = {
     Environment = var.env
     Owner = var.customer_name
     Project = var.project_name
     ManagedBy = "Terraform"
-    DeploymentTimestamp = formatdate("YYYY-MM-DD HH:MM+09:00", timestamp())
+    DeploymentTimestamp = formatdate("YYYY-MM-DD HH:MM", local.seoul_tz)
   }
 }

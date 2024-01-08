@@ -93,7 +93,7 @@ resource "azurerm_private_dns_zone" "storage_private_dns_zone" {
 
 # Private Endpoint for Storage Account
 resource "azurerm_private_endpoint" "storage_private_endpoint" {
-  name                = "pe-${var.project_name}-${var.vnet_group}-${var.resource_region_aka}-${var.env}-01-storage"
+  name                = "pe-storage-${var.project_name}-${var.vnet_group}-${var.resource_region_aka}-${var.env}-01"
   location            = var.resource_region
   resource_group_name = azurerm_resource_group.spoke_rg.name
   subnet_id           = azurerm_subnet.spoke_subnet.id
@@ -113,7 +113,7 @@ resource "azurerm_private_endpoint" "storage_private_endpoint" {
 
 # Azure Data Lake Storage Gen2에 대한 Private Endpoint (Synapse Workspace의 데이터 저장소로 사용될 경우)
 resource "azurerm_private_endpoint" "datalake_private_endpoint" {
-  name                = "pe-${var.project_name}-${var.vnet_group}-${var.resource_region_aka}-${var.env}-01-datalake"
+  name                = "pe-datalake-${var.project_name}-${var.vnet_group}-${var.resource_region_aka}-${var.env}-01"
   location            = var.resource_region
   resource_group_name = azurerm_resource_group.spoke_rg.name
   subnet_id           = azurerm_subnet.spoke_subnet.id
@@ -200,4 +200,39 @@ resource "azurerm_synapse_workspace" "spoke_synapse_workspace" {
   }
 
   tags = var.common_tags
+}
+
+# Synapse Workspace Private Endpoint
+resource "azurerm_private_endpoint" "synapse_private_endpoint" {
+  name                = "pe-synapse-${var.project_name}-${var.vnet_group}-${var.resource_region_aka}-${var.env}-01"
+  location            = var.resource_region
+  resource_group_name = azurerm_resource_group.spoke_rg.name
+  subnet_id           = azurerm_subnet.spoke_subnet.id
+
+  private_service_connection {
+    name                           = "psc-synapse"
+    private_connection_resource_id = azurerm_synapse_workspace.spoke_synapse_workspace.id
+    is_manual_connection           = false
+    subresource_names              = ["sql"] # 필요한 서브리소스를 명시합니다.
+  }
+
+  private_dns_zone_group {
+    name                 = "${var.project_name}-${var.vnet_group}-${var.resource_region_aka}-${var.env}-01-dns-zone-group"
+    private_dns_zone_ids = [azurerm_private_dns_zone.spoke_private_dns_zone.id]
+  }
+}
+
+# Synapse Workspace를 위한 Private DNS Zone 설정이 필요한 경우 추가합니다.
+resource "azurerm_private_dns_zone" "synapse_private_dns_zone" {
+  name                = "privateLink.sql.azuresynapse.net" # Synapse Workspace에 맞는 DNS Zone
+  resource_group_name = azurerm_resource_group.spoke_rg.name
+  tags                = var.common_tags
+}
+
+# Synapse Workspace Private DNS Zone과 VNet 연결
+resource "azurerm_private_dns_zone_virtual_network_link" "synapse" {
+  name                  = "pdz-link-${var.project_name}-${var.vnet_group}-${var.resource_region_aka}-${var.env}-01-synapse"
+  resource_group_name   = azurerm_resource_group.spoke_rg.name
+  private_dns_zone_name = azurerm_private_dns_zone.synapse_private_dns_zone.name
+  virtual_network_id    = azurerm_virtual_network.spoke_vnet.id
 }

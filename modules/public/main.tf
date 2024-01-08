@@ -55,7 +55,7 @@ resource "azurerm_subnet_network_security_group_association" "hub_subnet_nsg_ass
 
 # Application Insights 리소스 생성
 resource "azurerm_application_insights" "hub_app_insights" {
-  name                = "appinsights-${var.env}-${var.customer_name}"
+  name                = "appinsights-${var.project_name}-${var.vnet_group}-${var.resource_region_aka}-${var.env}-01"
   location            = azurerm_resource_group.hub_rg.location
   resource_group_name = azurerm_resource_group.hub_rg.name
   application_type    = "web"
@@ -63,7 +63,7 @@ resource "azurerm_application_insights" "hub_app_insights" {
 
 # App Service Plan
 resource "azurerm_service_plan" "linux_service_plan" {
-  name                = "asp-${var.env}-${var.customer_name}"
+  name                = "asp-${var.project_name}-${var.vnet_group}-${var.resource_region_aka}-${var.env}-01"
   location            = azurerm_resource_group.hub_rg.location
   resource_group_name = azurerm_resource_group.hub_rg.name
   os_type             = "Linux"
@@ -72,7 +72,7 @@ resource "azurerm_service_plan" "linux_service_plan" {
 
 # Function App
 resource "azurerm_linux_function_app" "hub_function_linux" {
-  name                = "func-linux-${var.env}-${var.customer_name}"
+  name                = "func-linux-${var.project_name}-${var.vnet_group}-${var.resource_region_aka}-${var.env}-01"
   location            = azurerm_resource_group.hub_rg.location
   resource_group_name = azurerm_resource_group.hub_rg.name
   service_plan_id  = azurerm_service_plan.linux_service_plan.id
@@ -97,7 +97,7 @@ resource "azurerm_linux_function_app" "hub_function_linux" {
     "APPINSIGHTS_INSTRUMENTATIONKEY" = azurerm_application_insights.hub_app_insights.instrumentation_key
     SCM_DO_BUILD_DURING_DEPLOYMENT=true
     ENABLE_ORYX_BUILD=true
-    EVENTHUB_NAME="evhub-${var.env}-${var.customer_name}"
+    EVENTHUB_NAME="evhub-${var.project_name}-${var.vnet_group}-${var.resource_region_aka}-${var.env}-01"
     "EVENT_HUB_CONNECTION" = "@Microsoft.KeyVault(SecretUri=${azurerm_key_vault_secret.eventhub_secret.id})"
     "WEBSITE_VNET_ROUTE_ALL"            = "1"
     "WEBSITE_VNET_PREMIUM"              = "1"
@@ -120,14 +120,14 @@ resource "azurerm_virtual_network_peering" "hub_to_spoke_peering" {
   name                      = "hub-to-spoke-peering"
   resource_group_name       = azurerm_resource_group.hub_rg.name
   virtual_network_name      = azurerm_virtual_network.hub_vnet.name
-  remote_virtual_network_id = azurerm_virtual_network.hub_vnet.id
+  remote_virtual_network_id = var.spoke_vnet.id
 }
 
 resource "azurerm_virtual_network_peering" "spoke_to_hub_peering" {
   name                      = "spoke-to-hub-peering"
   resource_group_name       = var.spoke_rg.name
   virtual_network_name      = var.spoke_vnet.name
-  remote_virtual_network_id = var.spoke_vnet.id
+  remote_virtual_network_id = azurerm_virtual_network.hub_vnet.id
 }
 
 # Key Vault 생성
